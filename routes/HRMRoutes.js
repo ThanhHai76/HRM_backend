@@ -14,6 +14,7 @@ const {
 
 const router = express.Router();
 
+router.route("/").get(uploadControllerGet);
 router.route("/all-employees").get(getAllHRM);
 router.route("/employee/create").post(createHRM);
 router.route("/employee/:id").get(getHRMById).delete(deleteHRM);
