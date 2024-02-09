@@ -1,3 +1,6 @@
+const fs = require("fs");
+const PDFParser = require("pdf2json");
+
 const HRMService = require("../services/HRMService");
 const { importExcelData2MongoDB } = require("./importExcelController");
 
@@ -36,8 +39,8 @@ const keyMap = {
   "Ngày đi làm": "onboardDate",
   "THỬ VIỆC Thời gian": "probationTime",
   "Kết quả thử việc": "probationResult",
-  "Note": "notes3"
-}
+  "Note": "notes3",
+};
 
 const { insertMany } = require("../services/HRMService");
 
@@ -52,7 +55,6 @@ exports.getAllHRM = async (req, res) => {
 
 exports.createHRM = async (req, res) => {
   try {
-    console.log(req);
     const HRM = await HRMService.createHRM(req.body);
     res.json({ data: HRM, status: "success" });
   } catch (err) {
@@ -101,7 +103,6 @@ exports.uploadExcel = (req, res) => {
 };
 
 const checkDuplicacy = async (employee, callback) => {
-  console.log("employee", employee);
   try {
     //Duplicacy check for each row against the database
     const emp = await HRMModel.findOne({ Email: employee.Email }).exec();
@@ -138,6 +139,20 @@ exports.uploadControllerPost = (req, res) => {
   });
 
   insertMany(dataMap).then(() => res.status(201).render("success"));
+};
+
+exports.uploadPDFController = (req, res) => {
+  console.log(req.file.path);
+  const pdfParser = new PDFParser();
+
+  pdfParser.on("pdfParser_dataError", (errData) =>
+    console.error(errData.parserError)
+  );
+  pdfParser.on("pdfParser_dataReady", (pdfData) => {
+    fs.writeFile("../uploads/pdfTest.json", JSON.stringify(pdfData));
+  });
+
+  pdfParser.loadPDF(req.file.path);
 };
 
 exports.uploadErrorController = (error, req, res, next) => {
