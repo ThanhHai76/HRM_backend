@@ -7,6 +7,9 @@
     "start": "nodemon app.js",
     "test": "mocha --timeout 10000"
   },
+  "engines": {
+    "node": "16.14.2"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
