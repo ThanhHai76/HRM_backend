@@ -2,6 +2,10 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const hrmRouter = require("./routes/HRMRoutes");
+const dotenv = require('dotenv');
+
+dotenv.config();
+
 const mongoURI = process.env.MONGODB_URI || "mongodb://localhost:27017/HRM";
 
 // const mongoURI = "mongodb+srv://thanhhai7698:haulinh1003@clustersealinh.gh276qj.mongodb.net/?retryWrites=true&w=majority";
