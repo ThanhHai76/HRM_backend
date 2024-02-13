@@ -22,7 +22,7 @@ const keyMap = {
   "Link SP": "linkSP",
   "Link FB": "linkFB",
   "Đơn vị UV từng làm": "companyUV",
-  "HR suggest": "hrSuggest",
+  "HR suggesst": "hrSuggest",
   "HR chấm": "hrMark",
   "Bộ phận chấm": "partMark",
   "Vòng 1": "round1",
@@ -142,14 +142,24 @@ exports.uploadControllerPost = (req, res) => {
 };
 
 exports.uploadPDFController = (req, res) => {
-  console.log(req.file.path);
-  const pdfParser = new PDFParser();
+  // const pdfParser = new PDFParser();
+
+  // pdfParser.on("pdfParser_dataError", (errData) =>
+  //   console.error(errData.parserError)
+  // );
+  // pdfParser.on("pdfParser_dataReady", (pdfData) => {
+  //   fs.writeFile("../uploads/pdfTest.json", JSON.stringify(pdfData));
+  // });
+
+  // pdfParser.loadPDF(req.file.path);
+
+  let pdfParser = new PDFParser(this, 1);
 
   pdfParser.on("pdfParser_dataError", (errData) =>
     console.error(errData.parserError)
   );
   pdfParser.on("pdfParser_dataReady", (pdfData) => {
-    fs.writeFile("../uploads/pdfTest.json", JSON.stringify(pdfData));
+    console.log(pdfParser.getRawTextContent().split("\n")[0]);
   });
 
   pdfParser.loadPDF(req.file.path);
