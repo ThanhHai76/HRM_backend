@@ -47,7 +47,23 @@ const { insertMany } = require("../services/HRMService");
 exports.getAllHRM = async (req, res) => {
   try {
     const HRM = await HRMService.getAllHRM();
-    res.json({ data: HRM, status: "success" });
+    const HRMFilters = HRM.map((item) => {
+      return {
+        _id: item._id,
+        source: item.source,
+        cvDate: item.cvDate,
+        job: item.job,
+        name: item.name,
+        birthYear: item.birthYear,
+        academicLevel: item.academicLevel,
+        specialized: item.specialized,
+        phone: item.phone,
+        email: item.email,
+        hrSuggest: item.hrSuggest,
+        hrMark: item.hrMark,
+      };
+    });
+    res.json({ data: HRMFilters, status: "success" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
