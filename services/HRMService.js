@@ -11,10 +11,6 @@ exports.getHRMById = async (id) => {
   return await HRMModel.findById(id);
 };
 
-exports.getHRMByPhone = async (phone) => {
-  return await HRMModel.find({ phoneNumber: phone });
-};
-
 exports.updateHRM = async (id, HRM) => {
   return await HRMModel.findByIdAndUpdate(id, HRM);
 };

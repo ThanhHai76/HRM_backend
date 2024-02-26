@@ -3,7 +3,7 @@ const {
   getAllHRM,
   createHRM,
   getHRMById,
-  getHRMByPhone,
+  deleteHRMEmpty,
   updateHRM,
   deleteHRM,
   uploadControllerGet,
@@ -19,7 +19,6 @@ router.route("/all-employees").get(getAllHRM);
 router.route("/employee/create").post(createHRM);
 router.route("/employee/:id").get(getHRMById).delete(deleteHRM);
 router.route("/employee/update/:id").put(updateHRM);
-router.route("/employee/findByPhone").get(getHRMByPhone);
 
 var multer = require("multer");
 var storage = multer.diskStorage({

@@ -87,15 +87,6 @@ exports.getHRMById = async (req, res) => {
   }
 };
 
-exports.getHRMByPhone = async (req, res) => {
-  try {
-    const HRM = await HRMService.getHRMByPhone(req.body.phone);
-    res.json({ data: HRM, status: "success" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 exports.updateHRM = async (req, res) => {
   try {
     const HRM = await HRMService.updateHRM(req.params.id, req.body);
@@ -154,7 +145,9 @@ exports.uploadControllerPost = (req, res) => {
     return dataObject;
   });
 
-  insertMany(dataMap).then(() => res.status(201).render("success"));
+  const dataInsert = dataMap.filter(item => item.source || item.phone);
+
+  insertMany(dataInsert).then(() => res.status(201).render("success"));
 };
 
 exports.uploadPDFController = (req, res) => {
