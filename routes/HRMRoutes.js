@@ -3,19 +3,20 @@ const {
   getAllHRM,
   createHRM,
   getHRMById,
-  deleteHRMEmpty,
   updateHRM,
   deleteHRM,
   uploadControllerGet,
   uploadControllerPost,
   uploadErrorController,
   uploadPDFController,
+  reportCurrentYear,
 } = require("../controllers/HRMController");
 
 const router = express.Router();
 
 router.route("/").get(uploadControllerGet);
 router.route("/all-employees").get(getAllHRM);
+router.route("/report-current-year").post(reportCurrentYear);
 router.route("/employee/create").post(createHRM);
 router.route("/employee/:id").get(getHRMById).delete(deleteHRM);
 router.route("/employee/update/:id").put(updateHRM);

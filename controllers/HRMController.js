@@ -1,5 +1,6 @@
 const fs = require("fs");
 const PDFParser = require("pdf2json");
+const parseFullName  = require('parse-full-name').parseFullName;
 
 const HRMService = require("../services/HRMService");
 const { importExcelData2MongoDB } = require("./importExcelController");
@@ -7,6 +8,10 @@ const { importExcelData2MongoDB } = require("./importExcelController");
 const HRMModel = require("../models/HRM");
 const async = require("async");
 const xlsx = require("xlsx");
+
+const moment = require('moment'); 
+
+const { createWorker } = require('tesseract.js');
 
 const keyMap = {
   "Nguồn": "source",
@@ -44,6 +49,11 @@ const keyMap = {
 
 const { insertMany } = require("../services/HRMService");
 
+const convertTimeMiliseconds = (time) => {
+  const timeAfterParse = moment(time, "DD MM YYYY");
+  return moment(timeAfterParse).valueOf();
+}
+
 exports.getAllHRM = async (req, res) => {
   try {
     const HRM = await HRMService.getAllHRM();
@@ -61,6 +71,7 @@ exports.getAllHRM = async (req, res) => {
         email: item.email,
         hrSuggest: item.hrSuggest,
         hrMark: item.hrMark,
+        partMark: item.partMark,
       };
     });
     res.json({ data: HRMFilters, status: "success" });
@@ -68,6 +79,17 @@ exports.getAllHRM = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.reportCurrentYear = async (req, res) => {
+  try {
+    const HRM = await HRMService.getAllHRM();
+    const trimWord = (`/${req.body.year}`).toUpperCase().trim();
+    const HRMFilters = HRM.filter((item) => (item.cvDate || "").toUpperCase().includes(trimWord));
+    res.json({ data: HRMFilters, status: "success" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
 
 exports.createHRM = async (req, res) => {
   try {
@@ -150,32 +172,168 @@ exports.uploadControllerPost = (req, res) => {
   insertMany(dataInsert).then(() => res.status(201).render("success"));
 };
 
-exports.uploadPDFController = (req, res) => {
-  // const pdfParser = new PDFParser();
-
-  // pdfParser.on("pdfParser_dataError", (errData) =>
-  //   console.error(errData.parserError)
-  // );
-  // pdfParser.on("pdfParser_dataReady", (pdfData) => {
-  //   fs.writeFile("../uploads/pdfTest.json", JSON.stringify(pdfData));
-  // });
-
-  // pdfParser.loadPDF(req.file.path);
-
-  let pdfParser = new PDFParser(this, 1);
-
-  pdfParser.on("pdfParser_dataError", (errData) =>
-    console.error(errData.parserError)
-  );
-  pdfParser.on("pdfParser_dataReady", (pdfData) => {
-    console.log(pdfParser.getRawTextContent().split("\n")[0]);
-  });
-
-  pdfParser.loadPDF(req.file.path);
-};
-
 exports.uploadErrorController = (error, req, res, next) => {
   res.status(400).send({
     error: error.message,
   });
 };
+
+const detechName = (text) => {
+  const lastNames = ['Nguyễn', 'Nguyen', 'Trần', 'Tran', 'Phạm', 'Pham', 'Vũ', 'Vu', 'Hứa', 'Hua', 'Hoàng', 'Hoang',
+  'Bùi', 'Bui', 'Lê', 'Le', 'Đỗ', 'Do', 'Tạ', 'Ta', 'Hà', 'Ha' , 'Đinh', 'Dinh', 'Phan', 'Phan', 'Biên', 'Bien', 'Mai', 
+  'Bạch', 'Bach', 'Đàm', 'Dam', 'Ngô', 'Ngo', 'Đào', 'Dao', 'Cao', 'Đoàn', 'Doan', 'Lại', 'Lai', 'Tôn', 'Ton', 
+  'Phí', 'Phi', 'Dương', 'Duong', 'Đặng', 'Dang', 'Huỳnh', 'Huynh', 'Khuất', 'Khuat' ,'Chu', 'Hồ', 'Ho', 'Trịnh', 'Trinh']
+
+  const checkName = lastNames.some(name => text.toUpperCase().includes(name.toUpperCase()));
+  return checkName;
+}
+
+exports.uploadPDFController = (req, res) => {
+  let pdfParser = new PDFParser(this, 1);
+
+  let dataCV = {};
+
+  pdfParser.on("pdfParser_dataError", (errData) =>
+    console.error(errData.parserError)
+  );
+  pdfParser.on("pdfParser_dataReady", (pdfData) => {
+    const content = pdfParser.getRawTextContent();
+    const dataCV = extractDataPdfVN(content);
+    console.log(dataCV);
+
+    // content.map((row) => {
+    //   const stringPhone = row.substring(1, row.length - 1);
+    //   if (validatePhoneNumber(stringPhone)) {dataCV.phone = stringPhone; console.log(stringPhone);}
+    // })
+  });
+
+  pdfParser.loadPDF(req.file.path);
+};
+
+function validatePhoneNumber(input_str) {
+  var re = /^\(?(\d{3})\)?[- ]?(\d{3})[- ]?(\d{4})$/;
+  return re.test(input_str);
+}
+
+function detectVietnameseNames(text) {
+  const nameRegex = /[\p{L}\p{M}]+/gu;
+
+  const matches = text.match(nameRegex);
+
+  const commonWords = ['và', 'của', 'trong', 'cho', 'tới', 'ở', 'bởi', 'cùng', 'tại'];
+  const names = matches.filter(name => name.length > 1 && !commonWords.includes(name.toLowerCase()));
+
+  return names;
+}
+
+async function extractTextFromPDF(pdfFilePath) {
+  const worker = await createWorker("eng");
+  const { data: { text } } = await worker.recognize(pdfFilePath);
+  await worker.terminate();
+  return text;
+}
+
+// Function to extract CV data using regex patterns
+function extractCVData(text) {
+  const cvData = {};
+
+  // Extract name
+  const nameRegex = /(?<=Name:\s)(.*)/i;
+  const nameMatch = text.match(nameRegex);
+  cvData.name = nameMatch ? nameMatch[0].trim() : '';
+
+  // Extract email
+  const emailRegex = /(?<=Email:\s)(.*)/i;
+  const emailMatch = text.match(emailRegex);
+  cvData.email = emailMatch ? emailMatch[0].trim() : '';
+
+  // Extract phone number
+  const phoneRegex = /(?<=Phone:\s)(.*)/i;
+  const phoneMatch = text.match(phoneRegex);
+  cvData.phone = phoneMatch ? phoneMatch[0].trim() : '';
+
+  // Extract skills
+  const skillsRegex = /(?<=Skills:\s)(.*)/i;
+  const skillsMatch = text.match(skillsRegex);
+  cvData.skills = skillsMatch ? skillsMatch[0].split(',').map(skill => skill.trim()) : [];
+
+  // Extract education
+  const educationRegex = /(?<=Education:\s)(.*)/i;
+  const educationMatch = text.match(educationRegex);
+  cvData.education = educationMatch ? educationMatch[0].trim() : '';
+
+  // Extract work experience
+  const experienceRegex = /(?<=Experience:\s)(.*)/i;
+  const experienceMatch = text.match(experienceRegex);
+  cvData.experience = experienceMatch ? experienceMatch[0].trim() : '';
+
+  return cvData;
+}
+
+function extractDataPdfVN(text) {
+
+  // Split the text into sections
+  const sections = text.split('\n\n');
+
+  // Initialize the CV data object
+  const cvData = {
+    name: '',
+    contact: {
+      email: '',
+      phone: '',
+      address: ''
+    },
+    workExperience: [],
+    education: [],
+    skills: []
+  };
+
+  // Parse the sections and extract the relevant information
+  for (const section of sections) {
+    if (section.startsWith('Họ và tên:')) {
+      const name = parseFullName(section.split(':')[1].trim());
+      cvData.name = name;
+    } else if (section.startsWith('Thông tin liên hệ:')) {
+      const contactInfo = section.split(':')[1].trim().split(',');
+      for (const info of contactInfo) {
+        const [key, value] = info.split(':').map(item => item.trim());
+        if (key.toLowerCase() === 'email') {
+          cvData.contact.email = value;
+        } else if (key.toLowerCase() === 'sđt') {
+          cvData.contact.phone = value;
+        } else if (key.toLowerCase() === 'địa chỉ') {
+          cvData.contact.address = value;
+        }
+      }
+    } else if (section.startsWith('Kinh nghiệm làm việc:')) {
+      const experiences = section.split(':')[1].trim().split('\n');
+      for (const experience of experiences) {
+        if (experience.trim() !== '') {
+          const [company, jobTitle, dates] = experience.split(' - ');
+          cvData.workExperience.push({
+            company,
+            jobTitle,
+            dates
+          });
+        }
+      }
+    } else if (section.startsWith('Học vấn:')) {
+      const education = section.split(':')[1].trim().split('\n');
+      for (const edu of education) {
+        if (edu.trim() !== '') {
+          const [degree, institution, graduationYear] = edu.split(', ');
+          cvData.education.push({
+            degree,
+            institution,
+            graduationYear
+          });
+        }
+      }
+    } else if (section.startsWith('Kỹ năng:')) {
+      const skills = section.split(':')[1].trim().split(', ');
+      cvData.skills = skills;
+    }
+  }
+
+  return cvData;
+}
