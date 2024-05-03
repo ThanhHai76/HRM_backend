@@ -10,12 +10,14 @@ const {
   uploadErrorController,
   uploadPDFController,
   reportCurrentYear,
+  getAllEmployeesCVHome,
 } = require("../controllers/HRMController");
 
 const router = express.Router();
 
 router.route("/").get(uploadControllerGet);
 router.route("/all-employees").get(getAllHRM);
+router.route("/employees-cv-home").get(getAllEmployeesCVHome);
 router.route("/report-current-year").post(reportCurrentYear);
 router.route("/employee/create").post(createHRM);
 router.route("/employee/:id").get(getHRMById).delete(deleteHRM);

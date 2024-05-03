@@ -80,6 +80,24 @@ exports.getAllHRM = async (req, res) => {
   }
 };
 
+exports.getAllEmployeesCVHome = async (req, res) => {
+  try {
+    const HRM = await HRMService.getAllHRM();
+    const hrmResponse = HRM.map((item) => {
+      return {
+        _id: item._id,
+        cvDate: item.cvDate,
+        job: item.job,
+        birthYear: item.birthYear,
+        hrMark: item.hrMark,
+      };
+    });
+    res.json({ data: hrmResponse, status: "success" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.reportCurrentYear = async (req, res) => {
   try {
     const HRM = await HRMService.getAllHRM();
