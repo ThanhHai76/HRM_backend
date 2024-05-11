@@ -89,7 +89,11 @@ exports.getAllEmployeesCVHome = async (req, res) => {
         cvDate: item.cvDate,
         job: item.job,
         birthYear: item.birthYear,
-        hrMark: item.hrMark,
+        partMark: item.partMark,
+        goWork: item.goWork,
+        joinRound1: item.joinRound1,
+        interviewV1: item.interviewV1,
+        probationResult: item.probationResult,
       };
     });
     res.json({ data: hrmResponse, status: "success" });

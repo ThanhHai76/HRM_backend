@@ -14,6 +14,7 @@ const jobSchema = new mongoose.Schema({
         required: true,
     },
     jobDescription: String,
+    recruitmentCost: Number,
     note: String,
 });
 
