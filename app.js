@@ -5,6 +5,7 @@ const hrmRouter = require("./routes/HRMRoutes");
 const authRouter = require("./routes/auth");
 const userRouter = require("./routes/users");
 const jobsRouter = require("./routes/jobRoutes");
+const trackRouter = require("./routes/trackRoutes");
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -57,6 +58,7 @@ app.use("/api/hrm", hrmRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/job', jobsRouter);
+app.use('/api/track', trackRouter);
 
 
 module.exports = app;
