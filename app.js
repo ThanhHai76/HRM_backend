@@ -6,6 +6,7 @@ const authRouter = require("./routes/auth");
 const userRouter = require("./routes/users");
 const jobsRouter = require("./routes/jobRoutes");
 const trackRouter = require("./routes/trackRoutes");
+const pdfRouter = require("./routes/pdfRoutes");
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -59,6 +60,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/job', jobsRouter);
 app.use('/api/track', trackRouter);
+app.use('/api/pdf', pdfRouter); 
 
 
 module.exports = app;
