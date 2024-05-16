@@ -85,10 +85,11 @@ function savePDF(request, file, savePath) {
 
 exports.uploadPDFController = async (req, res) => {
   try {
-    const savePath = path.join(
-      __dirname.replace("controllers", "/"),
-      req.file.path
-    ); // đường dẫn và tên tệp lưu trữ trên máy chủ
+    // const savePath = path.join(
+    //   __dirname.replace("controllers", "/"),
+    //   req.file.path
+    // ); // đường dẫn và tên tệp lưu trữ trên máy chủ
+    const savePath = process.env.BACKEND_URI + "/" + req.file.path;
     res.json({ data: savePath.replaceAll("\\", "/"), status: "success" });
   } catch (err) {
     res.status(500).json({ error: err.message });

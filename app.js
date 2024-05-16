@@ -62,5 +62,6 @@ app.use('/api/job', jobsRouter);
 app.use('/api/track', trackRouter);
 app.use('/api/pdf', pdfRouter); 
 
+app.use('/PDFUploads', express.static(path.join(__dirname, 'PDFUploads')));
 
 module.exports = app;
