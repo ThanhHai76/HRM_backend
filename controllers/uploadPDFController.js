@@ -89,7 +89,7 @@ exports.uploadPDFController = async (req, res) => {
     //   __dirname.replace("controllers", "/"),
     //   req.file.path
     // ); // đường dẫn và tên tệp lưu trữ trên máy chủ
-    const savePath = process.env.BACKEND_URI + "/" + req.file.path;
+    const savePath = process.env.BACKEND_URI_PDF_SERVER + "/" + req.file.path;
     res.json({ data: savePath.replaceAll("\\", "/"), status: "success" });
   } catch (err) {
     res.status(500).json({ error: err.message });
