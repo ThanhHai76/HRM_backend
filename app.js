@@ -7,13 +7,12 @@ const userRouter = require("./routes/users");
 const jobsRouter = require("./routes/jobRoutes");
 const trackRouter = require("./routes/trackRoutes");
 const pdfRouter = require("./routes/pdfRoutes");
+const emailRouter = require("./routes/emailRoutes");
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-// const mongoURI = "mongodb://localhost:27017/HRM";
-
-const mongoURI = "mongodb+srv://thanhhai7698:haulinh1003@clustersealinh.gh276qj.mongodb.net/?retryWrites=true&w=majority";
+const mongoURI = process.env.MONGODB_URI_SERVER;
 const cors = require("cors");
 
 var path = require("path");
@@ -61,6 +60,7 @@ app.use('/api/users', userRouter);
 app.use('/api/job', jobsRouter);
 app.use('/api/track', trackRouter);
 app.use('/api/pdf', pdfRouter); 
+app.use('/api/email', emailRouter);
 
 app.use('/PDFUploads', express.static(path.join(__dirname, 'PDFUploads')));
 
