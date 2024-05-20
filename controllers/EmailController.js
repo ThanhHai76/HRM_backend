@@ -6,9 +6,12 @@ const fs = require("fs");
 const transporter = nodemailer.createTransport({
   // Configure your email provider here
   service: "Gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: "thanhhai7698@gmail.com",
-    pass: "Semaiyeuem7698@",
+    pass: "dlhq qqdv pcok ptdk",
   },
 });
 
@@ -34,11 +37,13 @@ exports.createEmail = async (req, res) => {
 
 exports.sendEmail = async (req, res) => {
   try {
-    const { subject, content, receiver } = req.body;
+    const { subject, content, email, cc, bcc } = req.body;
 
     const mailOptions = {
       from: "thanhhai7698@gmail.com",
-      to: receiver,
+      to: email.split(","),
+      cc: cc ? cc.split(",") : "",
+      bcc: bcc ? bcc.split(",") : "",
       subject: subject,
       html: content,
     };

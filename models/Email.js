@@ -9,6 +9,8 @@ const emailSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  cc: String,
+  bcc: String,
   content: String,
   createdAt: {
     type: Date,
