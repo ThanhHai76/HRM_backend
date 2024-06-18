@@ -55,8 +55,7 @@ exports.sendEmail = async (req, res) => {
       }
       res.send("Email sent successfully");
     });
-    const Email = await emailService.createEmail(req.body);
-    res.json({ data: Email, status: "success" });
+    res.json({ status: "success" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
