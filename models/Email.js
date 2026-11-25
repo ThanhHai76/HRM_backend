@@ -18,4 +18,6 @@ const emailSchema = new mongoose.Schema({
   },
 });
 
+emailSchema.plugin(require("../utils/tenantPlugin"));
+
 module.exports = mongoose.model("EmailTemplate", emailSchema);

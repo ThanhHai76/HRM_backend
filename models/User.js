@@ -13,6 +13,16 @@ const userSchema = new mongoose.Schema({
         min: 6,
         max: 225
     },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        index: true
+    },
+    role: {
+        type: String,
+        enum: ['admin', 'hr', 'viewer'],
+        default: 'hr'
+    },
     password: {
         type: String,
         required: true,

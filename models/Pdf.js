@@ -23,4 +23,6 @@ const pdfSchema = new mongoose.Schema({
   },
 });
 
+pdfSchema.plugin(require("../utils/tenantPlugin"));
+
 module.exports = mongoose.model("PDF", pdfSchema);

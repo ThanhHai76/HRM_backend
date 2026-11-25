@@ -13,6 +13,7 @@ const {
   getAllEmployeesCVHome,
 } = require("../controllers/HRMController");
 
+const verifyToken = require("../middlewares/verifyToken");
 const router = express.Router();
 
 router.route("/").get(uploadControllerGet);
@@ -38,7 +39,7 @@ var uploads = multer({
   },
   fileFilter(req, file, cb) {
     if (!file.originalname.match(/\.xlsx$/)) {
-      return cb(new Error("Please upload a PDF"));
+      return cb(new Error("Please upload an Excel (.xlsx) file"));
     }
     cb(undefined, true);
   },
@@ -61,12 +62,13 @@ const uploadsPDF = multer({
 router.route("/upload_excel").get(uploadControllerGet);
 router
   .route("/upload_excel")
-  .post(uploads.single("excelFile"), uploadControllerPost),
-  uploadErrorController;
+  .post(uploads.single("excelFile"), verifyToken.bindTenant, uploadControllerPost);
 
 router
   .route("/upload_pdf")
-  .post(uploadsPDF.single("pdfFile"), uploadPDFController),
-  uploadErrorController;
+  .post(uploadsPDF.single("pdfFile"), verifyToken.bindTenant, uploadPDFController);
+
+// Bắt lỗi multer (sai định dạng, quá dung lượng) -> 400 JSON
+router.use(uploadErrorController);
 
 module.exports = router;

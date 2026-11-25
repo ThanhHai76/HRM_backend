@@ -35,6 +35,8 @@ const trackingSchema = new Schema({
   },
 });
 
+trackingSchema.plugin(require("../utils/tenantPlugin"));
+
 const TrackModel = mongoose.model("Tracking", trackingSchema);
  
 module.exports = TrackModel;

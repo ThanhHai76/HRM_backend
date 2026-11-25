@@ -33,11 +33,20 @@ const hrmSchema = new Schema({
   probationTime: String,
   probationResult: String,
   notes3: String,
+  // Hồ sơ năng lực có cấu trúc do AI trích xuất từ CV (không chứa thông tin định danh)
+  cvProfile: Schema.Types.Mixed,
+  // File CV gốc đã lưu trong hệ thống (xem collection cvfiles)
+  cvFileId: Schema.Types.ObjectId,
+  // Đồng bộ từ Google Sheet: giá trị lần đồng bộ gần nhất (để phát hiện chỉnh sửa tay trên web) và thời điểm
+  sheetSnapshot: Schema.Types.Mixed,
+  sheetSyncedAt: Date,
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
+
+hrmSchema.plugin(require("../utils/tenantPlugin"));
 
 const HRMModel = mongoose.model("HRM", hrmSchema);
  

@@ -8,6 +8,7 @@ const {
   uploadPDFController,
   uploadErrorController
 } = require("../controllers/uploadPDFController");
+const verifyToken = require("../middlewares/verifyToken");
 const router = express.Router();
 
 var multer = require("multer");
@@ -35,13 +36,15 @@ const uploadsPDF = multer({
 
 router
   .route("/upload_pdf")
-  .post(uploadsPDF.single("pdfFile"), uploadPDFController),
-  uploadErrorController;
+  .post(uploadsPDF.single("pdfFile"), verifyToken.bindTenant, uploadPDFController);
 
 router.route("/all-pdfs").get(getAllPDFs);
 router.route("/create-pdf").post(createPDF);
 router.route("/get-pdf/:id").get(getPDFById);
 router.route("/update-pdf/:id").put(updatePDF);
 router.route("/delete-pdf/:id").delete(deletePDF);
+
+// Bắt lỗi multer (sai định dạng, quá dung lượng) -> 400 JSON
+router.use(uploadErrorController);
 
 module.exports = router;

@@ -3,51 +3,21 @@ const PDFParser = require("pdf2json");
 const parseFullName  = require('parse-full-name').parseFullName;
 
 const HRMService = require("../services/HRMService");
-const { importExcelData2MongoDB } = require("./importExcelController");
+
+const pdfParse = require("pdf-parse");
 
 const HRMModel = require("../models/HRM");
 const async = require("async");
-const xlsx = require("xlsx");
+const { readFirstSheet } = require("../utils/readExcel");
 
 const moment = require('moment'); 
 
 const { createWorker } = require('tesseract.js');
 
-const keyMap = {
-  "Nguồn": "source",
-  "Ngày về/nhập CV": "cvDate",
-  "Job": "job",
-  "Họ và tên": "name",
-  "Năm sinh": "birthYear",
-  "Trình độ học vấn": "academicLevel",
-  "Chuyên ngành": "specialized",
-  "SĐT": "phone",
-  "Địa chỉ mail": "email",
-  "Link CV": "linkCV",
-  "Link SP": "linkSP",
-  "Link FB": "linkFB",
-  "Đơn vị UV từng làm": "companyUV",
-  "HR suggesst": "hrSuggest",
-  "HR chấm": "hrMark",
-  "Bộ phận chấm": "partMark",
-  "Vòng 1": "round1",
-  "Tham gia Vòng 1": "joinRound1",
-  "Kết quả PV V1": "interviewV1",
-  "VÒNG 2": "round2",
-  "Tham gia Vòng 2": "joinRound2",
-  "Kết qủa PV V2": "interviewV2",
-  "Notes": "notes",
-  "OFFER": "offer",
-  "Kết quả offer": "offerResult",
-  "Notes": "notes2",
-  "ĐI LÀM": "goWork",
-  "Ngày đi làm": "onboardDate",
-  "THỬ VIỆC Thời gian": "probationTime",
-  "Kết quả thử việc": "probationResult",
-  "Note": "notes3",
-};
+const { keyMap } = require("../utils/employeeColumns");
 
 const { insertMany } = require("../services/HRMService");
+const { log } = require("console");
 
 const convertTimeMiliseconds = (time) => {
   const timeAfterParse = moment(time, "DD MM YYYY");
@@ -72,6 +42,8 @@ exports.getAllHRM = async (req, res) => {
         hrSuggest: item.hrSuggest,
         hrMark: item.hrMark,
         partMark: item.partMark,
+        hasCvProfile: !!item.cvProfile,
+        hasCvFile: !!item.cvFileId,
       };
     });
     res.json({ data: HRMFilters, status: "success" });
@@ -88,6 +60,7 @@ exports.getAllEmployeesCVHome = async (req, res) => {
         _id: item._id,
         cvDate: item.cvDate,
         job: item.job,
+        source: item.source,
         birthYear: item.birthYear,
         partMark: item.partMark,
         goWork: item.goWork,
@@ -149,10 +122,6 @@ exports.deleteHRM = async (req, res) => {
   }
 };
 
-exports.uploadExcel = (req, res) => {
-  importExcelData2MongoDB("../public/uploads" + req.file.filename);
-};
-
 const checkDuplicacy = async (employee, callback) => {
   try {
     //Duplicacy check for each row against the database
@@ -174,24 +143,26 @@ exports.uploadControllerGet = (req, res) => {
   res.render("index");
 };
 
-exports.uploadControllerPost = (req, res) => {
-  const workBook = xlsx.readFile(req.file.path);
-  const sheet_namelist = workBook.SheetNames;
-  let xlData = xlsx.utils.sheet_to_json(workBook.Sheets[sheet_namelist], {
-    raw: false,
-  });
+exports.uploadControllerPost = async (req, res) => {
+  try {
+    const xlData = await readFirstSheet(req.file.path);
 
-  const dataMap = xlData.map((item) => {
-    const dataObject = {};
-    for (const iterator in item) {
-      dataObject[keyMap[iterator]] = item[iterator];
-    }
-    return dataObject;
-  });
+    const dataMap = xlData.map((item) => {
+      const dataObject = {};
+      for (const header in item) {
+        // Bỏ qua cột không có trong keyMap
+        if (keyMap[header]) dataObject[keyMap[header]] = item[header];
+      }
+      return dataObject;
+    });
 
-  const dataInsert = dataMap.filter(item => item.source || item.phone);
+    const dataInsert = dataMap.filter((item) => item.source || item.phone);
 
-  insertMany(dataInsert).then(() => res.status(201).render("success"));
+    await insertMany(dataInsert);
+    res.status(201).render("success");
+  } catch (err) {
+    res.status(400).json({ error: "Không đọc được file Excel: " + err.message });
+  }
 };
 
 exports.uploadErrorController = (error, req, res, next) => {
@@ -220,8 +191,8 @@ exports.uploadPDFController = (req, res) => {
   );
   pdfParser.on("pdfParser_dataReady", (pdfData) => {
     const content = pdfParser.getRawTextContent();
-    const dataCV = extractDataPdfVN(content);
-    console.log(dataCV);
+    // const dataCV = extractCVData(content);
+    console.log(extractCandidateInfo(content));
 
     // content.map((row) => {
     //   const stringPhone = row.substring(1, row.length - 1);
@@ -359,3 +330,42 @@ function extractDataPdfVN(text) {
 
   return cvData;
 }
+
+function extractCandidateInfo(text) {
+  const normalized = text.replace(/\r/g, "").trim();
+
+  // --- Name ---
+  // Lấy dòng in hoa toàn bộ, dài từ 2 từ trở lên
+  let name = normalized.match(/(?:^|\n)([A-ZÀ-ỸĐ\s]{5,})(?:\n|$)/)?.[1].trim()
+           || normalized.match(/Ứng viên:\s*([^\|]+)/i)?.[1].trim()
+           || "N/A";
+
+  // --- Email ---
+  let email = normalized.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/)?.[0] || "N/A";
+
+  // --- Phone ---
+  let phone = normalized.match(/(\+?84|0)\d{1,2}[-\s]?\d{3,4}[-\s]?\d{3,4}/)?.[0]
+           || "N/A";
+
+  // --- Skills ---
+  let skillsSection = (normalized.match(/SKILLS([\s\S]*?)EDUCATION/i)?.[1] || "").toLowerCase();
+  const skillKeywords = [
+    "c/c++", "c#", "java", "javascript", "html", "css", "js", "sql",
+    "springboot", "asp.net", "bootstrap", "mysql", "wordpress",
+    "android studio", "github", "canva", "capcut", "vmware", "virtual box"
+  ];
+  let skills = skillKeywords.filter(skill => skillsSection.includes(skill));
+
+  // --- Experience ---
+  const expRegex = /(\d{1,2}\/\d{4}\s*-\s*\d{1,2}\/\d{4}.*)/g;
+  let experience = [];
+  let match;
+  while ((match = expRegex.exec(normalized)) !== null) {
+    experience.push(match[0].trim());
+  }
+
+  return { name, email, phone, skills, experience };
+}
+
+
+
